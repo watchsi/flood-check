@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bkk-flood-v1';
+const CACHE_NAME = 'bkk-flood-v2';
 const urlsToCache = [
   './',
   './index.html',
