@@ -19,6 +19,19 @@
         }
         .search-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;}
         .search-box button { padding: 10px 15px; background: #0056b3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;}
+        
+        /* ตกแต่งป้ายตัวเลขระดับน้ำให้แสดงชัดเจนทับบนแผนที่ */
+        .leaflet-tooltip.flood-label {
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 2px solid #333;
+            border-radius: 6px;
+            color: #000;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            padding: 3px 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
@@ -29,6 +42,7 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js?v=3"></script>
+    <!-- บังคับให้เบราว์เซอร์ดึงไฟล์ app.js เวอร์ชันใหม่ (v4) -->
+    <script src="app.js?v=4"></script>
 </body>
 </html>
