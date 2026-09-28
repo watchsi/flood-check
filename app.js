@@ -5,32 +5,65 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// 2. ระบบฐานข้อมูลบนมือถือ (Local Storage) บันทึกจุดน้ำท่วมส่วนตัว
+// 2. ระบบฐานข้อมูลบนมือถือ (Local Storage)
 let savedFloods = JSON.parse(localStorage.getItem('myFloodPins')) || [];
 
-// แสดงหมุดที่เคยบันทึกไว้ในเครื่อง
+// ฟังก์ชันสำหรับวาดวงกลมน้ำท่วมและแยกสีตามความรุนแรง
+function drawFloodPin(lat, lng, level) {
+    let color = '#28a745'; // สีเขียว (น้ำขังเล็กน้อย ไม่เกิน 10 ซม.)
+    if (level > 30) {
+        color = '#dc3545'; // สีแดง (น้ำท่วมสูงเกิน 30 ซม. รถเล็กผ่านไม่ได้)
+    } else if (level > 10) {
+        color = '#ffc107'; // สีเหลือง (น้ำท่วมปานกลาง 11-30 ซม.)
+    }
+
+    // สร้างวงกลมบนแผนที่
+    L.circleMarker([lat, lng], {
+        radius: 15,
+        fillColor: color,
+        color: color,
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.7
+    }).addTo(map)
+      .bindPopup(`<div style="text-align:center;"><b>ระดับน้ำท่วม</b><br><span style="font-size:20px; color:${color};">${level} ซม.</span></div>`);
+}
+
+// โหลดหมุดน้ำท่วมเดิมที่เคยบันทึกไว้ขึ้นมาแสดง
 savedFloods.forEach(pin => {
-    L.marker([pin.lat, pin.lng]).addTo(map)
-     .bindPopup('จุดเฝ้าระวังน้ำท่วมที่คุณบันทึกไว้');
+    drawFloodPin(pin.lat, pin.lng, pin.level);
 });
 
-// เมื่อผู้ใช้แตะที่แผนที่ ให้ปักหมุดและบันทึกลงฐานข้อมูลในมือถือ
+// 3. เมื่อผู้ใช้แตะที่แผนที่ ให้มีกล่องเด้งถามระดับน้ำ
 map.on('click', function(e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
+    // ถามระดับน้ำจากผู้ใช้
+    let levelInput = prompt("ระบุความสูงของน้ำท่วมบริเวณนี้ (เซนติเมตร):", "15");
     
-    L.marker([lat, lng]).addTo(map).bindPopup('เพิ่มจุดเฝ้าระวังใหม่แล้ว!').openPopup();
-    
-    savedFloods.push({lat: lat, lng: lng});
-    localStorage.setItem('myFloodPins', JSON.stringify(savedFloods));
+    // ถ้ายกเลิก หรือไม่กรอกตัวเลข จะไม่ทำงาน
+    if (levelInput !== null && levelInput !== "") {
+        let level = parseInt(levelInput);
+        
+        if(!isNaN(level)) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            // วาดวงกลมลงแผนที่
+            drawFloodPin(lat, lng, level);
+            
+            // บันทึกลงฐานข้อมูลในมือถือ
+            savedFloods.push({lat: lat, lng: lng, level: level});
+            localStorage.setItem('myFloodPins', JSON.stringify(savedFloods));
+        } else {
+            alert("กรุณากรอกตัวเลขเท่านั้นครับ");
+        }
+    }
 });
 
-// 3. ระบบค้นหาสถานที่ (Geocoding API ฟรี)
+// 4. ระบบค้นหาสถานที่ (Geocoding API ฟรี)
 async function searchLocation() {
     const query = document.getElementById('searchInput').value;
     if(!query) return alert("กรุณาพิมพ์ชื่อสถานที่");
 
-    // บังคับค้นหาในพื้นที่กรุงเทพฯ เพื่อความแม่นยำ
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query} กรุงเทพมหานคร`;
     
     try {
@@ -40,8 +73,9 @@ async function searchLocation() {
         if(data.length > 0) {
             const lat = data[0].lat;
             const lon = data[0].lon;
-            map.setView([lat, lon], 16); // ซูมไปที่สถานที่นั้น
-            L.marker([lat, lon]).addTo(map).bindPopup(data[0].display_name).openPopup();
+            map.setView([lat, lon], 16); 
+            // หมุดค้นหาใช้สีฟ้าปกติ เพื่อไม่ให้สับสนกับหมุดน้ำท่วม
+            L.marker([lat, lon]).addTo(map).bindPopup(`<b>ผลการค้นหา:</b><br>${data[0].display_name}`).openPopup();
         } else {
             alert("ไม่พบสถานที่ ลองเปลี่ยนคำค้นหาครับ");
         }
@@ -50,7 +84,7 @@ async function searchLocation() {
     }
 }
 
-// 4. ลงทะเบียน Service Worker เพื่อให้แอปติดตั้งลงมือถือได้
+// 5. ลงทะเบียน Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js');
