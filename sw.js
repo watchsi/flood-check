@@ -1,8 +1,8 @@
-const CACHE_NAME = 'bkk-flood-v3';
+const CACHE_NAME = 'bkk-flood-v4';
 const urlsToCache = [
   './',
   './index.html',
-  './app.js?v=2',
+  './app.js?v=3',
   './manifest.json',
   './icon.png'
 ];
