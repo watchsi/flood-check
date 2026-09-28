@@ -8,37 +8,36 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // 2. ระบบฐานข้อมูลบนมือถือ (Local Storage)
 let savedFloods = JSON.parse(localStorage.getItem('myFloodPins')) || [];
 
-// ฟังก์ชันสำหรับวาดวงกลมน้ำท่วมและโชว์ตัวเลขตลอดเวลา
+// ฟังก์ชันสำหรับวาดวงกลมน้ำท่วมและโชว์ "ตัวเลขระดับน้ำ" ตลอดเวลา
 function drawFloodPin(lat, lng, level) {
-    let color = '#28a745'; // สีเขียว
+    let color = '#28a745'; // สีเขียว (น้ำไม่เกิน 10 ซม.)
     if (level > 30) {
-        color = '#dc3545'; // สีแดง
+        color = '#dc3545'; // สีแดง (น้ำเกิน 30 ซม.)
     } else if (level > 10) {
-        color = '#ffc107'; // สีเหลือง
+        color = '#ffc107'; // สีเหลือง (น้ำ 11-30 ซม.)
     }
 
-    // สร้างวงกลมบนแผนที่
+    // สร้างวงกลมบอกความรุนแรง
     let marker = L.circleMarker([lat, lng], {
-        radius: 20, // ขยายวงกลมให้ใหญ่ขึ้นนิดหน่อยเพื่อใส่ตัวเลข
+        radius: 20, 
         fillColor: color,
-        color: color,
-        weight: 2,
+        color: '#333',
+        weight: 1,
         opacity: 1,
         fillOpacity: 0.7
     }).addTo(map);
     
-    // โชว์ตัวเลขระดับน้ำขึ้นมาบนแผนที่ทันทีโดยไม่ต้องคลิก
-    marker.bindTooltip(`<b>${level} ซม.</b>`, {
+    // โชว์ตัวเลขระดับน้ำขึ้นมาบนแผนที่ทันที โดยใช้ class CSS 'flood-label'
+    marker.bindTooltip(`${level} ซม.`, {
         permanent: true, 
         direction: 'center',
-        className: 'flood-label' // CSS class เผื่อตกแต่งเพิ่ม
+        className: 'flood-label' 
     });
 }
 
-// โหลดหมุดน้ำท่วมเดิมที่เคยบันทึกไว้ขึ้นมาแสดง
+// โหลดหมุดน้ำท่วมเดิมที่เคยบันทึกไว้ขึ้นมาแสดง (กรองเฉพาะอันที่มีระดับน้ำ)
 savedFloods.forEach(pin => {
-    // ป้องกัน Error จากหมุดเวอร์ชันเก่าที่ไม่มีตัวเลขระดับน้ำ
-    if(pin.level !== undefined) {
+    if(pin.level !== undefined && pin.level !== null) {
         drawFloodPin(pin.lat, pin.lng, pin.level);
     }
 });
@@ -54,8 +53,10 @@ map.on('click', function(e) {
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             
+            // วาดวงกลมพร้อมตัวเลขลงแผนที่
             drawFloodPin(lat, lng, level);
             
+            // บันทึกลงเครื่องผู้ใช้
             savedFloods.push({lat: lat, lng: lng, level: level});
             localStorage.setItem('myFloodPins', JSON.stringify(savedFloods));
         } else {
