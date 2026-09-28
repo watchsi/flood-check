@@ -8,38 +8,45 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // 2. ระบบฐานข้อมูลบนมือถือ (Local Storage)
 let savedFloods = JSON.parse(localStorage.getItem('myFloodPins')) || [];
 
-// ฟังก์ชันสำหรับวาดวงกลมน้ำท่วมและแยกสีตามความรุนแรง
+// ฟังก์ชันสำหรับวาดวงกลมน้ำท่วมและโชว์ตัวเลขตลอดเวลา
 function drawFloodPin(lat, lng, level) {
-    let color = '#28a745'; // สีเขียว (น้ำขังเล็กน้อย ไม่เกิน 10 ซม.)
+    let color = '#28a745'; // สีเขียว
     if (level > 30) {
-        color = '#dc3545'; // สีแดง (น้ำท่วมสูงเกิน 30 ซม. รถเล็กผ่านไม่ได้)
+        color = '#dc3545'; // สีแดง
     } else if (level > 10) {
-        color = '#ffc107'; // สีเหลือง (น้ำท่วมปานกลาง 11-30 ซม.)
+        color = '#ffc107'; // สีเหลือง
     }
 
     // สร้างวงกลมบนแผนที่
-    L.circleMarker([lat, lng], {
-        radius: 15,
+    let marker = L.circleMarker([lat, lng], {
+        radius: 20, // ขยายวงกลมให้ใหญ่ขึ้นนิดหน่อยเพื่อใส่ตัวเลข
         fillColor: color,
         color: color,
         weight: 2,
         opacity: 1,
         fillOpacity: 0.7
-    }).addTo(map)
-      .bindPopup(`<div style="text-align:center;"><b>ระดับน้ำท่วม</b><br><span style="font-size:20px; color:${color};">${level} ซม.</span></div>`);
+    }).addTo(map);
+    
+    // โชว์ตัวเลขระดับน้ำขึ้นมาบนแผนที่ทันทีโดยไม่ต้องคลิก
+    marker.bindTooltip(`<b>${level} ซม.</b>`, {
+        permanent: true, 
+        direction: 'center',
+        className: 'flood-label' // CSS class เผื่อตกแต่งเพิ่ม
+    });
 }
 
 // โหลดหมุดน้ำท่วมเดิมที่เคยบันทึกไว้ขึ้นมาแสดง
 savedFloods.forEach(pin => {
-    drawFloodPin(pin.lat, pin.lng, pin.level);
+    // ป้องกัน Error จากหมุดเวอร์ชันเก่าที่ไม่มีตัวเลขระดับน้ำ
+    if(pin.level !== undefined) {
+        drawFloodPin(pin.lat, pin.lng, pin.level);
+    }
 });
 
-// 3. เมื่อผู้ใช้แตะที่แผนที่ ให้มีกล่องเด้งถามระดับน้ำ
+// 3. เมื่อผู้ใช้แตะที่แผนที่ ให้ถามระดับน้ำ
 map.on('click', function(e) {
-    // ถามระดับน้ำจากผู้ใช้
     let levelInput = prompt("ระบุความสูงของน้ำท่วมบริเวณนี้ (เซนติเมตร):", "15");
     
-    // ถ้ายกเลิก หรือไม่กรอกตัวเลข จะไม่ทำงาน
     if (levelInput !== null && levelInput !== "") {
         let level = parseInt(levelInput);
         
@@ -47,10 +54,8 @@ map.on('click', function(e) {
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             
-            // วาดวงกลมลงแผนที่
             drawFloodPin(lat, lng, level);
             
-            // บันทึกลงฐานข้อมูลในมือถือ
             savedFloods.push({lat: lat, lng: lng, level: level});
             localStorage.setItem('myFloodPins', JSON.stringify(savedFloods));
         } else {
@@ -59,7 +64,7 @@ map.on('click', function(e) {
     }
 });
 
-// 4. ระบบค้นหาสถานที่ (Geocoding API ฟรี)
+// 4. ระบบค้นหาสถานที่
 async function searchLocation() {
     const query = document.getElementById('searchInput').value;
     if(!query) return alert("กรุณาพิมพ์ชื่อสถานที่");
@@ -74,7 +79,6 @@ async function searchLocation() {
             const lat = data[0].lat;
             const lon = data[0].lon;
             map.setView([lat, lon], 16); 
-            // หมุดค้นหาใช้สีฟ้าปกติ เพื่อไม่ให้สับสนกับหมุดน้ำท่วม
             L.marker([lat, lon]).addTo(map).bindPopup(`<b>ผลการค้นหา:</b><br>${data[0].display_name}`).openPopup();
         } else {
             alert("ไม่พบสถานที่ ลองเปลี่ยนคำค้นหาครับ");
